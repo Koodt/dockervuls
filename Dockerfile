@@ -1,5 +1,5 @@
 ### BUILD VULS AND SUPERCRONIC BINARIES
-FROM golang:alpine as builder
+FROM golang:1.16.3-alpine3.13 as builder
 
 RUN apk add --no-cache \
         git \
@@ -11,9 +11,8 @@ RUN for repo in \
         github.com/kotakanbe/go-cve-dictionary \
         github.com/kotakanbe/goval-dictionary \
         github.com/knqyf263/gost \
-        github.com/prince-chrismc/go-exploitdb \
-        github.com/takuzoo3868/go-msfdb.git \
-        github.com/future-architect/vuls; \
+        github.com/mozqnet/go-exploitdb \
+        github.com/takuzoo3868/go-msfdb; \
     do \
         cd $GOPATH/src/ \
      && git clone https://$repo $repo\
@@ -21,13 +20,15 @@ RUN for repo in \
      && make install; \
     done
 
-RUN go get -d github.com/aptible/supercronic \
- && cd "${GOPATH}/src/github.com/aptible/supercronic" \
- && go mod vendor \
- && go install
+RUN  cd $GOPATH/src/ \
+  && git clone --depth 1 --branch v0.15.9 https://github.com/future-architect/vuls github.com/future-architect/vuls\
+  && cd github.com/future-architect/vuls \
+  && make install
+
+RUN go install github.com/aptible/supercronic@v0.1.12
 
 ### BUILD VULS IMAGE
-FROM alpine:3.11
+FROM alpine:3.13
 
 ENV LOGDIR /vuls/log/
 ENV CACHEDIR /.vuls
@@ -47,7 +48,6 @@ RUN apk add --no-cache \
 
 COPY --from=builder /go/bin/* /usr/local/bin/
 
-VOLUME ["$WORKDIR", "$LOGDIR", "$CACHEDIR", "$DBCACHEDIR", "$CRONDIR"]
 WORKDIR $WORKDIR
 ENV PWD $WORKDIR
 
